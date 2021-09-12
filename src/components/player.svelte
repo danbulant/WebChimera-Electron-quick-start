@@ -9,7 +9,7 @@
     var /** @type {HTMLCanvasElement}*/playerElem, /** @type {HTMLDivElement}*/parent;
     /** @type {Player} */ 
     var player = new Player();
-    const { playing, time: currentTime, length, volume, rate } = player.stores;
+    const { playing, time: currentTime, length, volume, rate, mute } = player.stores;
     window.player = player;
     var menuOpen = true;
 
@@ -82,26 +82,22 @@
         console.log(e.key);
         switch(e.key) {
             case " ":
-                player.togglePause();
+                togglePause();
                 break;
             case "ArrowRight": // seek+
-                $currentTime += 5000;
-                if($currentTime > $length) $currentTime = $length - 1;
+                forward();
                 break;
             case "ArrowLeft": // seek-
-                $currentTime -= 5000;
-                if($currentTime < 0) $currentTime = 0;
+                rewind();
                 break;
             case "ArrowUp": // vol+
-                $volume += 5;
-                if($volume > 100) $volume = 100;
+                volUp();
                 break;
             case "ArrowDown": // vol-
-                $volume -= 5;
-                if($volume < 0) $volume = 0;
+                volDown();
                 break;
             case "m": // mute
-                player.toggleMute();
+                toggleMute();
                 break;
             case "f":
                 toggleFullscreen();
@@ -109,20 +105,45 @@
         }
         updatePos();
     }
+    function forward() {
+        $currentTime += 5000;
+        if($currentTime > $length) $currentTime = $length - 1;
+    }
+    function rewind() {
+        $currentTime -= 5000;
+        if($currentTime < 0) $currentTime = 0;
+    }
+    function volUp() {
+        $volume += 5;
+        if($volume > 100) $volume = 100;
+    }
+    function volDown() {
+        $volume -= 5;
+        if($volume < 0) $volume = 0;
+    }
+    function toggleMute() {
+        $mute = !$mute;
+        if(!$mute && $volume < 1) $volume = 5;
+    }
     function mouseenter() {
         mouseIn = true;
     }
     function mouseleave() {
         mouseIn = false;
     }
-    function mousedown() {
+    function togglePause() {
         player.togglePause();
     }
+    var isFullscreen = false;
     function toggleFullscreen() {
         if(document.fullscreenElement) {
-            document.exitFullscreen();
+            document.exitFullscreen().then(() => {
+                isFullscreen = false;
+            });
         } else {
-            parent.requestFullscreen();
+            parent.requestFullscreen({ navigationUI: "hide" }).then(() => {
+                isFullscreen = true;
+            });
         }
     }
     var title = path.basename(location).substr(0, path.basename(location).length - path.extname(location).length);
@@ -131,7 +152,7 @@
 </script>
 
 <svelte:head>
-    <title>{title} - Video Player</title>
+    <title>{title} {$playing ? "" : "[Paused]"} - Video Player</title>
 </svelte:head>
 
 <svelte:window on:keydown={keydown} />
@@ -141,16 +162,25 @@
         <h1 class="title">{title}</h1>
         <h3 class="author">Unknown</h3>
     </div>
-    <canvas bind:this={playerElem} on:mousedown={mousedown} on:doubleclick={toggleFullscreen}></canvas>
+    <canvas bind:this={playerElem} on:mousedown={togglePause} on:doubleclick={toggleFullscreen}></canvas>
     <div class="menu" class:open={menuOpen} on:mouseenter={mouseenter} on:mouseleave={mouseleave}>
         <input type="range" class="progress" bind:value={$currentTime} max={$length}
             style="background: linear-gradient(to right, #EAC935 {($currentTime / $length * 100)}%, rgba(255,255,255,0.3) {($currentTime / $length * 100)}%);"
             >
         <div class="controls">
             <div class="vol">
+                <img src="/static/{($mute || $volume < 1) ? "audio-mute" : $volume < 60 ? "audio-low" : "audio"}.png" alt="Toggle mute" on:click={toggleMute}>
                 <input type="range" bind:value={$volume} max={100} step={1}
                     style="width: 70px; background: linear-gradient(to right, #EAC935 {($volume)}%, rgba(255,255,255,0.3) {($volume)}%);"
                     >
+            </div>
+            <div class="center">
+                <img src="/static/rewind.png" alt="Rewind 5 seconds" on:click={rewind}>
+                <img src="/static/{$playing ? "pause" : "play"}.png" alt="{$playing ? "Pause" : "Play"}" class="play" on:click={togglePause}>
+                <img src="/static/fast-forward.png" alt="Skip 5 seconds" on:click={forward}>
+            </div>
+            <div class="right">
+                <img src="/static/{isFullscreen ? "shrink" : "fullscreen"}.png" alt="{isFullscreen ? "close": "open"} fullscreen" on:click={toggleFullscreen}>
             </div>
         </div>
     </div>
@@ -226,6 +256,17 @@
         align-items: center;
         justify-content: space-evenly;
     }
+    .controls > div {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .controls img {
+        cursor: pointer;
+    }
+    .controls .center .play {
+        height: 32px;
+    }
 
     .progress {
         position: absolute;
@@ -238,6 +279,7 @@
         margin: 0;
         height: 5px;
         z-index: 1;
+        cursor: pointer;
         -webkit-appearance: none;
     }
 

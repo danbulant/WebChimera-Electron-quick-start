@@ -34,7 +34,7 @@ export class Player {
             buffering: readable(false, (set) => this.setters.buffering = set),
             volume: toPublicWritable(writable(this.player.volume, (set) => this.setters.volume = set), (vol) => this.player.volume = vol),
             mute: toPublicWritable(writable(this.player.mute, (set) => this.setters.mute = set), (mute) => this.player.mute = mute),
-            rate: toPublicWritable(writable(this.player.input.rate, (set) => this.setters.rate = set), (rate) => this.player.input.rate = rate),
+            rate: toPublicWritable(writable(this.player.input.rate, (set) => this.setters.rate = set), (rate) => this.player.input.rate = rate)
         };
     }
 
@@ -60,10 +60,12 @@ export class Player {
     }
     resume() {
         this.player.play();
+        this.setters.playing?.(true);
         return this;
     }
     pause() {
         this.player.pause();
+        this.setters.playing?.(false);
         return this;
     }
     stop() {
@@ -72,11 +74,17 @@ export class Player {
 
     togglePause() {
         this.player.togglePause();
+        this.setters.playing?.(this.player.playing);
         return this;
     }
     toggleMute() {
         this.player.toggleMute();
+        this.setters.mute?.(this.player.mute);
         return this;
+    }
+
+    getMedia() {
+        return this.player.playlist.items[this.player.playlist.currentItem]
     }
 
     onLogMessage(level, message) {
