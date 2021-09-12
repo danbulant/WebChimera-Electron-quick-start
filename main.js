@@ -1,29 +1,60 @@
+const path = require('path');
+
 if (process.platform == 'win32') {
-    process.env['VLC_PLUGIN_PATH'] = require('path').join(__dirname, 'node_modules/wcjs-prebuilt/bin/plugins');
+    process.env['VLC_PLUGIN_PATH'] = path.join(__dirname, 'node_modules/wcjs-prebuilt/bin/plugins');
 }
 
-const electron = require('electron');
-const app = electron.app;
-const BrowserWindow = electron.BrowserWindow;
+const { app, BrowserWindow, ipcMain } = require('electron');
+const serve = require('electron-serve');
+const loadURL = serve({ directory: 'public' });
 
 let mainWindow;
 
+function isDev() {
+    return !app.isPackaged;
+}
 
 function createWindow() {
     // Create the browser window.
     mainWindow = new BrowserWindow({
         width: 800,
-        height: 600
-    })
-    mainWindow.loadURL(`file://${__dirname}/index.html`);
-    mainWindow.webContents.openDevTools();
+        height: 600,
+        webPreferences: {
+            nodeIntegration: true,
+            contextIsolation: false
+        },
+        show: false
+    });
+    
+    if (isDev()) {
+        mainWindow.loadURL('http://localhost:5000/');
+        mainWindow.webContents.openDevTools();
+    } else {
+        loadURL(mainWindow);
+    }
 
     mainWindow.on('closed', function() {
-        mainWindow = null
-    })
+        mainWindow = null;
+    });
+
+    mainWindow.once('ready-to-show', () => {
+        mainWindow.show();
+        console.log("Showing window");
+    });
 }
 
 app.on('ready', createWindow);
+    
+ipcMain.on('get-args', (event, arg) => {
+    const args = process.argv.slice();
+    console.log("ARGS", args);
+    if(args[1] == ".") args.shift();
+    args.shift();
+    event.returnValue = JSON.stringify(args);
+});
+ipcMain.on("log", (event, ...data) => {
+    console.log(...data);
+})
 
 app.on('window-all-closed', function() {
     // On OS X it is common for applications and their menu bar

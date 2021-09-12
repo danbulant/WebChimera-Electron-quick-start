@@ -4,7 +4,13 @@
     "version": "0.0.1",
     "main": "main.js",
     "scripts": {
-        "start": "electron ."
+        "build": "rollup -c",
+        "dev": "rollup -c -w",
+        "start": "sirv public --no-clear",
+        "electron": "wait-on http://localhost:5000 && electron . \"$FILE\"",
+        "electron-dev": "concurrently \"npm run dev\" \"npm run electron\"",
+        "preelectron-pack": "npm run build",
+        "electron-pack": "electron-builder"
     },
     "repository": {
         "type": "git",
@@ -23,17 +29,23 @@
     },
     "homepage": "https://github.com/EduardoMartinezCatala/WebChimera-Electron-quick-start#readme",
     "dependencies": {
-        "wcjs-player": "^6.0.0",
-        "wcjs-prebuilt": "^3.0.0"
+        "electron": "12",
+        "electron-serve": "^1.1.0",
+        "webchimera.js": "^0.5.2",
+        "webgl-video-renderer": "^0.2.0"
     },
     "env": "development",
     "devDependencies": {
-        "electron": "^1.3.3",
-        "electron-prebuilt": "^1.3.3"
-    },
-    "wcjs-prebuilt": {
-        "runtime": "electron",
-        "runtimeVersion": "v1.3.3",
-        "version": "v0.2.6"
+        "@rollup/plugin-commonjs": "^20.0.0",
+        "@rollup/plugin-node-resolve": "^13.0.4",
+        "concurrently": "^6.2.1",
+        "electron-builder": "^22.11.7",
+        "rollup": "^2.56.3",
+        "rollup-plugin-css-only": "^3.1.0",
+        "rollup-plugin-livereload": "^2.0.5",
+        "rollup-plugin-svelte": "^7.1.0",
+        "sirv-cli": "^1.0.14",
+        "svelte": "^3.42.5",
+        "wait-on": "^6.0.0"
     }
 }
